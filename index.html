@@ -120,6 +120,16 @@
   .btn-ghost{background:transparent; color:var(--ink); border:1.5px solid var(--line)}
   .btn:focus-visible, input:focus-visible, select:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
   .form-error{font-size:.85rem; color:var(--error); display:none; margin:0}
+  .linkbtn{background:none; border:none; padding:6px 0; font:inherit; font-size:.88rem; font-weight:600; color:var(--ink);
+    text-decoration:underline; text-underline-offset:3px; cursor:pointer; justify-self:center}
+  .recover p.lead{color:var(--muted); font-size:.9rem; margin:0 0 14px}
+  .rec-msg{font-size:.88rem; margin:12px 0 0; min-height:1em}
+  .rec-msg.bad{color:var(--error)}
+  .suggest{font-size:.85rem; color:var(--ink); margin-top:6px}
+  .suggest .linkbtn{padding:0; font-size:.85rem; color:var(--gold-deep)}
+  #emailNote{margin:0 0 14px}
+  #emailNote a{color:inherit; font-weight:600}
+  .recover .btn{margin-top:14px}
   .privacy{font-size:.74rem; color:var(--muted); margin:4px 0 0}
 
   /* ---------- Success ---------- */
@@ -228,20 +238,44 @@
         <div class="hint">We'll contact you about the challenge on this number.</div>
         <div class="err">Enter a Saudi mobile number starting with 5 (9 digits).</div>
       </div>
+      <div class="field" data-for="email">
+        <label for="email">Email</label>
+        <input id="email" type="email" inputmode="email" autocomplete="email" maxlength="100" required>
+        <div class="hint">Only used to send you your pass if you forget it.</div>
+        <div class="suggest" id="emailSuggest" hidden>Did you mean <button type="button" class="linkbtn" id="suggestBtn"></button>?</div>
+        <div class="err">Enter a valid email address.</div>
+      </div>
       <div class="consent" id="consentWrap">
         <input type="checkbox" id="consent" required>
-        <label for="consent">I agree to receive WhatsApp messages from EVA Pharma about the Elite Pharmacist Challenge and related educational content. I can opt out at any time by replying STOP.</label>
+        <label for="consent">I agree to receive WhatsApp messages from EVA Pharma about the Elite Pharmacist Challenge and related educational content, and to receive my pass number by email if I ask for it. I can opt out of WhatsApp messages at any time by replying STOP.</label>
       </div>
       <p class="form-error" id="formError" role="alert"></p>
       <button type="submit" class="btn btn-gold" id="submitBtn">Claim My Pass</button>
       <p class="privacy">We use your details only to run the challenge and contact you about it, in line with the Saudi Personal Data Protection Law.</p>
+      <button type="button" class="linkbtn" id="forgotLink">Already registered? Forgot your pass?</button>
     </form>
+  </div>
+
+  <div class="panel recover" id="recoverPanel" hidden>
+    <h2>Forgot Your Pass?</h2>
+    <p class="lead">Enter the WhatsApp number you registered with. We'll email your pass to the address you used when you registered.</p>
+    <div class="field" data-for="recMobile">
+      <label for="recMobile">WhatsApp number</label>
+      <div class="phone"><span>+966</span><input id="recMobile" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="5X XXX XXXX" maxlength="18"></div>
+      <div class="err">Enter a Saudi mobile number starting with 5 (9 digits).</div>
+    </div>
+    <button class="btn btn-gold" id="recBtn" type="button">Email My Pass</button>
+    <p class="rec-msg" id="recMsg" role="status"></p>
+    <button type="button" class="linkbtn" id="recBack" style="display:block;margin:10px auto 0">Back to registration</button>
   </div>
 
   <div class="panel done" id="done" aria-live="polite">
     <h2 id="doneTitle">Pass Claimed</h2>
     <p id="doneText">Your pass is sealed.</p>
-    <a class="btn btn-wa" id="lostPass" target="_blank" rel="noopener" style="display:none">Message EVA On WhatsApp</a>
+    <p class="small" id="emailNote"></p>
+    <button class="btn btn-gold" id="dupRecover" type="button" style="display:none">Email My Pass</button>
+    <p class="rec-msg" id="dupMsg" role="status"></p>
+    <a class="btn btn-wa" id="lostPass" target="_blank" rel="noopener" style="display:none">Didn't Get It? Message EVA On WhatsApp</a>
     <div class="actions" id="actions">
       <a class="btn btn-wa" id="waSend" target="_blank" rel="noopener">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1112 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 01-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 00-.7.3 3 3 0 00-.9 2.2 5.2 5.2 0 001.1 2.7 11.8 11.8 0 004.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 001.8-1.3 2.2 2.2 0 00.2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
@@ -381,6 +415,30 @@ function refresh(){
   refresh(); $(id).closest('.field').classList.remove('invalid'); }));
 $('consent').addEventListener('change', () => $('consentWrap').classList.remove('invalid'));
 
+const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+$('email').addEventListener('input', () => { $('email').closest('.field').classList.remove('invalid'); $('emailSuggest').hidden = true; });
+
+/* Catch common email domain typos: gmial.com, hotmial.com, gmail.con ... */
+const DOMAINS = ['gmail.com','hotmail.com','outlook.com','yahoo.com','icloud.com','live.com','me.com','outlook.sa','hotmail.co.uk','msn.com'];
+function editDistance(a, b){
+  const d = Array.from({length:a.length+1}, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function suggestEmail(v){
+  const m = v.trim().toLowerCase().match(/^([^\s@]+)@([^\s@]+)$/);
+  if (!m || DOMAINS.includes(m[2])) return '';
+  let best = '', bestD = 3;
+  for (const dom of DOMAINS){ const dd = editDistance(m[2], dom); if (dd < bestD){ bestD = dd; best = dom; } }
+  return best ? `${m[1]}@${best}` : '';
+}
+$('email').addEventListener('blur', () => {
+  const sug = suggestEmail($('email').value);
+  $('suggestBtn').textContent = sug; $('emailSuggest').hidden = !sug;
+});
+$('suggestBtn').addEventListener('click', () => { $('email').value = $('suggestBtn').textContent; $('emailSuggest').hidden = true; });
 function validate(){
   let first = null;
   for (const key of Object.keys(checks)){
@@ -388,6 +446,9 @@ function validate(){
     $(key).closest('.field').classList.toggle('invalid', !ok);
     if (!ok && !first) first = $(key);
   }
+  const emailOk = validEmail($('email').value);
+  $('email').closest('.field').classList.toggle('invalid', !emailOk);
+  if (!emailOk && !first) first = $('email');
   const c = $('consent').checked;
   $('consentWrap').classList.toggle('invalid', !c);
   if (!c && !first) first = $('consent');
@@ -469,17 +530,56 @@ function alreadyRegistered(){
   $('formPanel').style.display = 'none';
   document.querySelector('.progress').style.display = 'none';
   $('doneTitle').textContent = 'You Already Have A Pass';
-  $('doneText').textContent = EVA_WHATSAPP
-    ? 'This WhatsApp number is already registered. Lost your pass number? Message us on WhatsApp and we will send it to you.'
-    : 'This WhatsApp number is already registered. Lost your pass number? Contact your EVA Pharma representative.';
+  $('doneText').textContent = 'This WhatsApp number is already registered. Forgot your pass? We can email it to the address you registered with.';
   $('actions').style.display = 'none';
-  if (EVA_WHATSAPP){
-    const a = $('lostPass');
-    a.href = `https://wa.me/${EVA_WHATSAPP}?text=${encodeURIComponent('Hi EVA Pharma, I registered for the Elite Pharmacist Challenge but lost my pass number.')}`;
-    a.style.display = 'flex';
-  }
+  $('dupRecover').style.display = 'flex';
   $('done').style.display = 'block';
 }
+$('dupRecover').addEventListener('click', () => recoverPass(normalizeMobile($('mobile').value), $('dupMsg'), $('dupRecover')));
+
+/* ---------- Forgot pass ---------- */
+function showWhatsAppFallback(){
+  if (!EVA_WHATSAPP) return;
+  const a = $('lostPass');
+  a.href = `https://wa.me/${EVA_WHATSAPP}?text=${encodeURIComponent("Hi EVA Pharma, I registered for the Elite Pharmacist Challenge but lost my pass number and didn't receive the recovery email.")}`;
+  a.style.display = 'flex';
+  if (!$('done').contains(a) || $('done').style.display !== 'block'){ $('recoverPanel').appendChild(a); }
+}
+async function recoverPass(mobile, msgEl, btn){
+  msgEl.className = 'rec-msg'; msgEl.textContent = '';
+  btn.disabled = true; const label = btn.textContent; btn.textContent = 'Sending…';
+  let res;
+  try{
+    if (DEMO){ await new Promise(r => setTimeout(r,600)); res = { status:'ok' }; }
+    else { const r = await fetch(SCRIPT_URL, { method:'POST', body: JSON.stringify({ type:'recover', mobile }) }); res = await r.json(); }
+  }catch(e){ res = { status:'network' }; }
+  btn.disabled = false; btn.textContent = label;
+  if (res.status === 'ok'){
+    msgEl.textContent = "If this number is registered, your pass is on its way to the email you registered with. Check your inbox and spam folder." + (EVA_WHATSAPP ? " Not there after 10 minutes? Message EVA on WhatsApp." : "");
+    showWhatsAppFallback();
+  } else if (res.status === 'rate_limited'){
+    msgEl.className = 'rec-msg bad'; msgEl.textContent = 'Too many requests for this number. Try again in a few hours, or message EVA on WhatsApp.';
+    showWhatsAppFallback();
+  } else if (res.status === 'unavailable'){
+    msgEl.className = 'rec-msg bad'; msgEl.textContent = "Email isn't available right now. Message EVA on WhatsApp and we'll send your pass.";
+    showWhatsAppFallback();
+  } else if (res.status === 'network'){
+    msgEl.className = 'rec-msg bad'; msgEl.textContent = 'No connection. Check your internet and try again.';
+  } else {
+    msgEl.className = 'rec-msg bad'; msgEl.textContent = 'Enter a Saudi mobile number starting with 5 (9 digits).';
+  }
+}
+$('forgotLink').addEventListener('click', () => {
+  $('formPanel').style.display = 'none'; $('recoverPanel').hidden = false;
+  if (validMobile($('mobile').value)) $('recMobile').value = $('mobile').value;
+  $('recMobile').focus();
+});
+$('recBack').addEventListener('click', () => { $('recoverPanel').hidden = true; $('formPanel').style.display = ''; });
+$('recBtn').addEventListener('click', () => {
+  const ok = validMobile($('recMobile').value);
+  $('recMobile').closest('.field').classList.toggle('invalid', !ok);
+  if (ok) recoverPass(normalizeMobile($('recMobile').value), $('recMsg'), $('recBtn'));
+});
 
 function seal(passId, refCode, title, text){
   claimed = { passId, refCode, name:$('name').value.trim(), pharmacy:$('pharmacy').value.trim(), city:$('city').value };
@@ -489,6 +589,13 @@ function seal(passId, refCode, title, text){
   $('formPanel').style.display = 'none';
   document.querySelector('.progress').style.display = 'none';
   $('doneTitle').textContent = title; $('doneText').textContent = text;
+  const en = $('emailNote'), em = $('email').value.trim().toLowerCase(), b = document.createElement('b');
+  b.textContent = em; en.textContent = ''; en.append("We'll use ", b, ' if you forget your pass. ');
+  if (EVA_WHATSAPP){
+    const a = document.createElement('a'); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Wrong email? Message EVA on WhatsApp.';
+    a.href = `https://wa.me/${EVA_WHATSAPP}?text=${encodeURIComponent(`Hi EVA Pharma, I registered for the Elite Pharmacist Challenge (${passId}) with the wrong email. My correct email is: `)}`;
+    en.append(a);
+  }
   $('done').style.display = 'block';
   setupShare();
   window.scrollTo({top: pass.getBoundingClientRect().top + scrollY - 16, behavior:'smooth'});
@@ -501,7 +608,7 @@ form.addEventListener('submit', async e => {
   const btn = $('submitBtn'); btn.disabled = true; btn.textContent = 'Claiming your pass…';
   const first = $('name').value.trim().split(/\s+/)[0];
   const payload = { name:$('name').value.trim(), pharmacy:$('pharmacy').value.trim(), city:$('city').value,
-    mobile: normalizeMobile($('mobile').value), consent:true, consent_version: CONSENT_VERSION, source };
+    mobile: normalizeMobile($('mobile').value), email: $('email').value.trim().toLowerCase(), consent:true, consent_version: CONSENT_VERSION, source };
   try{
     let res;
     if (DEMO){ await new Promise(r => setTimeout(r,700)); const ch='ACDEFGHJKMNPQRTUVWXY34679'; const rnd = n => Array.from({length:n},()=>ch[Math.floor(Math.random()*ch.length)]).join(''); res = { status:'ok', passId:'EP-' + rnd(4), refCode: rnd(5) }; }
